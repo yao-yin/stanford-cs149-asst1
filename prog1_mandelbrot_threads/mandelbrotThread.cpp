@@ -8,6 +8,7 @@ typedef struct {
     float y0, y1;
     unsigned int width;
     unsigned int height;
+    int startRow, numRows;
     int maxIterations;
     int* output;
     int threadId;
@@ -34,7 +35,8 @@ void workerThreadStart(WorkerArgs * const args) {
     // to compute a part of the output image.  For example, in a
     // program that uses two threads, thread 0 could compute the top
     // half of the image and thread 1 could compute the bottom half.
-
+    mandelbrotSerial(args->x0, args->y0, args->x1, args->y1, args->width,
+    args->height, args->startRow, args->numRows, args->maxIterations, args->output);
     printf("Hello world from thread %d\n", args->threadId);
 }
 
@@ -60,6 +62,7 @@ void mandelbrotThread(
     // Creates thread objects that do not yet represent a thread.
     std::thread workers[MAX_THREADS];
     WorkerArgs args[MAX_THREADS];
+    int numRows = (height + (numThreads - 1)) / numThreads;
 
     for (int i=0; i<numThreads; i++) {
       
@@ -75,7 +78,8 @@ void mandelbrotThread(
         args[i].maxIterations = maxIterations;
         args[i].numThreads = numThreads;
         args[i].output = output;
-      
+        args[i].startRow = i*numRows;
+        args[i].numRows = std::min(numRows, height - args[i].startRow);
         args[i].threadId = i;
     }
 
@@ -87,7 +91,6 @@ void mandelbrotThread(
     }
     
     workerThreadStart(&args[0]);
-
     // join worker threads
     for (int i=1; i<numThreads; i++) {
         workers[i].join();

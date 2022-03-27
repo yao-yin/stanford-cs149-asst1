@@ -249,7 +249,50 @@ void clampedExpVector(float* values, int* exponents, float* output, int N) {
   // Your solution should work for any value of
   // N and VECTOR_WIDTH, not just when VECTOR_WIDTH divides N
   //
-  
+  __cs149_vec_float x, y;
+  __cs149_vec_float clamp_upper_bound = _cs149_vset_float(9.999999f);
+  __cs149_vec_int e; // x^e
+  __cs149_mask all_one = _cs149_init_ones();
+  __cs149_mask filter_res;
+  __cs149_vec_int all_zero = _cs149_vset_int(0); 
+  __cs149_vec_int ones = _cs149_vset_int(1);
+  __cs149_vec_float onesf = _cs149_vset_float(1.0f);
+  for (int i = 0; i < N; i += VECTOR_WIDTH) {
+    // load from values
+    all_one = _cs149_init_ones(std::min(VECTOR_WIDTH, N - i));
+    __cs149_mask init_mask = all_one;
+    __cs149_mask exp_zero_mask = _cs149_init_ones(VECTOR_WIDTH);
+    //std::cout << exp_zero_mask.value[0] << " " << exp_zero_mask.value[1] << " " << exp_zero_mask.value[2] << " " << exp_zero_mask.value[3] << endl;
+    _cs149_vload_float(x, values+i, all_one);
+    _cs149_vload_float(y, values+i, all_one);
+    //load from exponents
+    _cs149_vload_int(e, exponents+i, all_one);
+    _cs149_vgt_int(init_mask, e, all_zero, all_one);
+
+    _cs149_veq_int(exp_zero_mask, e, all_zero, all_one);
+    //std::cout << exp_zero_mask.value[0] << " " << exp_zero_mask.value[1] << " " << exp_zero_mask.value[2] << " " << exp_zero_mask.value[3] << endl;
+    exp_zero_mask = _cs149_mask_not(exp_zero_mask);
+    //std::cout << e.value[0] << " " << e.value[1] << " " << e.value[2] << " " << e.value[3] << endl;
+    _cs149_vsub_int(e, e, ones, exp_zero_mask);
+    //std::cout << exp_zero_mask.value[0] << " " << exp_zero_mask.value[1] << " " << exp_zero_mask.value[2] << " " << exp_zero_mask.value[3] << endl;
+    //std::cout << e.value[0] << " " << e.value[1] << " " << e.value[2] << " " << e.value[3] << endl;
+    exp_zero_mask = _cs149_mask_not(exp_zero_mask);
+    // while (e > 0)
+    while (1) {
+      _cs149_vgt_int(init_mask, e, all_zero, all_one);
+      if (_cs149_cntbits(init_mask) == 0) break;
+      //std::cout << e.value[0] << " " << e.value[1] << " " << e.value[2] << " " << e.value[3] << endl;
+      //std::cout << x.value[0] <<" " << x.value[1] << " " << x.value[2] << " " << x.value[3] << endl; 
+      _cs149_vsub_int(e, e, ones, init_mask);
+      _cs149_vmult_float(x, x, y, init_mask);
+      _cs149_vgt_int(init_mask, e, all_zero, all_one);
+    }
+
+    _cs149_vgt_float(filter_res, x, clamp_upper_bound, all_one);
+    _cs149_vmove_float(x, clamp_upper_bound, filter_res);
+    _cs149_vmove_float(x, onesf, exp_zero_mask);
+    _cs149_vstore_float(output+i, x, all_one);
+  }
 }
 
 // returns the sum of all elements in values

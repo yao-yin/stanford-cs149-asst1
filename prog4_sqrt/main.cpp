@@ -34,7 +34,16 @@ int main() {
         // to you generate best and worse-case speedups
         
         // starter code populates array with random input values
-        values[i] = .001f + 2.998f * static_cast<float>(rand()) / RAND_MAX;
+        //values[i] = .001f + 2.998f * static_cast<float>(rand()) / RAND_MAX;
+        
+        // slowest: by choose different values among 8 wide SIMD.
+        // values[i] = .001f + 2.998f*(1.0/(i % 8)); //1.46x 5.45x
+        // values[i] = 1; // 1.20x 1.20x
+
+        // fastest: by choose the largest value, all of them are the same
+        // 7.07x 28.59x
+        values[i] = 2.999f;
+
     }
 
     // generate a gold version to check results
